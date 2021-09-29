@@ -9,9 +9,10 @@ JSON_ROOT = _ROOT / "jsons"
 
 def merge_config_optuna_params(
     base_config: DictConfig,
-    embedding: str,
-    backbone: str,
-    head: str,
+    embedding_path: str,
+    backbone_path: str,
+    head_path: str,
+    estimator_model_path: str,
 ) -> DictConfig:
     """Utility for creating config.optuna.parameters.
 
@@ -21,7 +22,7 @@ def merge_config_optuna_params(
     config = OmegaConf.create({})
     OmegaConf.set_struct(config, True)
 
-    embedding_args = read_config(JSON_ROOT / "nn/encoders/embedding" / f"{embedding}.json")
+    embedding_args = read_config(embedding_path)
     OmegaConf.update(
         config,
         "optuna.parameters.encoder.embedding.args",
@@ -29,13 +30,13 @@ def merge_config_optuna_params(
         force_add=True,
     )
 
-    backbone_args = read_config(JSON_ROOT / "nn/encoders/backbone" / f"{backbone}.json")
+    backbone_args = read_config(backbone_path)
     OmegaConf.update(
         config, "optuna.parameters.encoder.backbone.args", backbone_args, force_add=True
     )
 
-    estimator_model_args = read_config(JSON_ROOT / "estimator_model_args.json")
-    estimator_model_args.update(read_config(JSON_ROOT / "nn/models/head/" / f"{head}.json"))
+    estimator_model_args = read_config(estimator_model_path)
+    estimator_model_args.update(read_config(head_path))
     OmegaConf.update(
         config,
         "optuna.parameters.estimator.model_args",

@@ -1,3 +1,4 @@
+import os
 import json
 
 from omegaconf import DictConfig, OmegaConf
@@ -14,6 +15,9 @@ def read_config(filepath: str) -> DictConfig:
         DictConfig
     """
     config = None
+
+    if not os.path.isfile(filepath):
+        raise ValueError(f"{filepath} does not exist.")
 
     try:  # loading yaml file
         config = OmegaConf.load(filepath)
