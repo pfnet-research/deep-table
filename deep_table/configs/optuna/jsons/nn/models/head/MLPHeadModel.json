@@ -1,0 +1,10 @@
+{
+    "dim_hiddn": {
+        "type": "int",
+        "args": {
+            "low": 16,
+            "high": 256,
+            "step": 16
+        }
+    }
+}

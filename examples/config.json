@@ -1,0 +1,86 @@
+{
+    "dataset": "Adult",
+    "dataframe_args": {
+        "test_size": 0.2,
+        "random_state": 42
+    },
+    "datamodule_args": {
+        "batch_size": 256
+    },
+    "logger": {
+        "save_dir": "log"
+    },
+    "encoder": {
+        "embedding": {
+            "name": "FeatureEmbedding",
+            "args": {
+                "dim_embed": 16,
+                "use_cls": false
+            }
+        },
+        "backbone": {
+            "name": "SAINTBackbone",
+            "args": {
+            }
+        }
+    },
+    "pretrainer": {
+        "enable": false,
+        "datamodule_args": {
+            "batch_size": 256
+        },
+        "trainer_args": {
+            "max_epochs": 1,
+            "gpus": 0,
+            "seed": 42,
+            "early_stop_round": 5,
+            "fast_dev_run": false
+        },
+        "model_args": {
+            "name": "TabTransformerPretrainModel",
+            "learning_rate": 0.0001,
+            "optimizer": "AdamW",
+            "optimizer_params": {},
+            "metrics": [],
+            "metrics_params": [],
+            "lr_scheduler": null,
+            "lr_scheduler_monitor_metric": "val_loss",
+            "checkpoints": null
+        }
+    },
+    "estimator": {
+        "enable": true,
+        "datamodule_args": {
+            "batch_size": 256
+        },
+        "trainer_args": {
+            "max_epochs": 1,
+            "gpus": 0,
+            "seed": 42,
+            "early_stop_round": 5,
+            "fast_dev_run": false
+        },
+        "model_args": {
+            "name": "MLPHeadModel",
+            "learning_rate": 0.0001,
+            "optimizer": "AdamW",
+            "optimizer_params": {},
+            "metrics": [],
+            "metrics_params": [],
+            "lr_scheduler": null,
+            "lr_scheduler_monitor_metric": "val_loss",
+            "checkpoints": null
+        }
+    },
+    "optuna": {
+        "enable": true,
+        "n_trials": 100,
+        "objective_loss": "cross_entropy",
+        "parameters": {
+        },
+        "create_study": {
+            "direction": "minimize",
+            "study_name": "deep_table"
+        }
+    }
+}
