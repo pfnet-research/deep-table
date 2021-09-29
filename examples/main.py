@@ -88,9 +88,13 @@ if __name__ == "__main__":
     config = read_config(basedir / "config.json")
     config = merge_config_optuna_params(
         config,
-        config.encoder.embedding.name,
-        config.encoder.backbone.name,
-        config.estimator.model_args.name,
+        os.path.join(basedir, "jsons/nn/encoders/embedding/",
+                     config.encoder.embedding.name+".json"),
+        os.path.join(basedir, "jsons/nn/encoders/backbone/",
+                     config.encoder.backbone.name+".json"),
+        os.path.join(basedir, "jsons/nn/models/head",
+                     config.estimator.model_args.name+".json"),
+        os.path.join(basedir, "jsons/estimator_model_args.json")
     )
 
     dataset_dir = Path("data")
