@@ -1,0 +1,10 @@
+{
+    "batch_size": {
+        "type": "int",
+        "args": {
+            "low": 128,
+            "high": 512,
+            "step": 64
+        }
+    }
+}

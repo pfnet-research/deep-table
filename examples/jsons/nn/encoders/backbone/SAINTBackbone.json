@@ -1,0 +1,56 @@
+{
+    "n_heads": {
+        "type": "int",
+        "args": {
+            "low": 4,
+            "high": 16,
+            "step": 4
+        }
+    },
+    "dim_selfattn_head": {
+        "type": "int",
+        "args": {
+            "low": 4,
+            "high": 16,
+            "step": 4
+        }
+    },
+    "dim_intersample_head": {
+        "type": "int",
+        "args": {
+            "low": 16,
+            "high": 128,
+            "step": 16
+        }
+    },
+    "dim_feedforward": {
+        "type": "int",
+        "args": {
+            "low": 64,
+            "high": 256,
+            "step": 32
+        }
+    },
+    "n_layers": {
+        "type": "int",
+        "args": {
+            "low": 1,
+            "high": 6
+        }
+    },
+    "dim_feedforward": {
+        "type": "int",
+        "args": {
+            "low": 128,
+            "high": 256,
+            "step": 16
+        }
+    },
+    "dropout": {
+        "type": "float",
+        "args": {
+            "low": 0.05,
+            "high": 0.15
+        }
+    }
+}

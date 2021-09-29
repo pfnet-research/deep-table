@@ -1,0 +1,38 @@
+{
+    "dim_max": {
+        "type": "int",
+        "args": {
+            "low": 256,
+            "high": 1024,
+            "step": 128
+        }
+    },
+    "dim_out": {
+        "type": "int",
+        "args": {
+            "low": 32,
+            "high": 128,
+            "step": 32
+        }
+    },
+    "num_layers": {
+        "type": "int",
+        "args": {
+            "low": 2,
+            "high": 8
+        }
+    },
+    "use_norm": {
+        "type": "categorical",
+        "args": {
+            "choices": [false, true]
+        }
+    },
+    "dropout": {
+        "type": "float",
+        "args": {
+            "low": 0.05,
+            "high": 0.15
+        }
+    }
+}

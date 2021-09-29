@@ -1,0 +1,32 @@
+{
+    "n_blocks": {
+        "type": "int",
+        "args": {
+            "low": 1,
+            "high": 6
+        }
+    },
+    "n_heads": {
+        "type": "int",
+        "args": {
+            "low": 8,
+            "high": 16,
+            "step": 8
+        }
+    },
+    "dim_feedforward": {
+        "type": "int",
+        "args": {
+            "low": 128,
+            "high": 256,
+            "step": 16
+        }
+    },
+    "dropout": {
+        "type": "float",
+        "args": {
+            "low": 0.05,
+            "high": 0.15
+        }
+    }
+}
