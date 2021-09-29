@@ -119,9 +119,7 @@ class SAINTPretrainModel(BaseModel):
             else None,
         }
 
-    def _encoder(
-        self, x: Dict[str, Tensor], add_noise: bool = False
-    ) -> Tensor:
+    def _encoder(self, x: Dict[str, Tensor], add_noise: bool = False) -> Tensor:
         if add_noise:
             if (self.num_continuous_features > 0) and (
                 self.num_categorical_features > 0

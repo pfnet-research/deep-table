@@ -12,12 +12,15 @@ from torch import Tensor
 from deep_table.configs import read_config
 from deep_table.configs.optuna.utils import (
     make_suggest_config,
-    merge_config_optuna_params,
+    update_config_,
 )
 from deep_table.data import datasets
 from deep_table.data.data_module import TabularDatamodule
 from deep_table.estimators.base import Estimator
 from deep_table.utils import get_scores
+
+DATASET_DIR = Path("data")
+BASEDIR = Path(os.path.dirname(__file__))
 
 
 def objective(
@@ -83,23 +86,40 @@ def objective(
     return objective_fn
 
 
-if __name__ == "__main__":
-    basedir = Path(os.path.dirname(__file__))
-    config = read_config(basedir / "config.json")
-    config = merge_config_optuna_params(
-        config,
-        os.path.join(basedir, "jsons/nn/encoders/embedding/",
-                     config.encoder.embedding.name+".json"),
-        os.path.join(basedir, "jsons/nn/encoders/backbone/",
-                     config.encoder.backbone.name+".json"),
-        os.path.join(basedir, "jsons/nn/models/head",
-                     config.estimator.model_args.name+".json"),
-        os.path.join(basedir, "jsons/estimator_model_args.json")
+def _update_optuna_config(config: DictConfig):
+    """Update `config.optuna.parameters` using json files in examples/jsons.
+
+    Modify json files in examples/json to adjust hyper-parameter tuning ranges.
+    """
+
+    embedding_path = os.path.join(
+        BASEDIR, "jsons/nn/encoders/embedding/", config.encoder.embedding.name+".json",
     )
 
-    dataset_dir = Path("data")
+    backbone_path = os.path.join(
+        BASEDIR, "jsons/nn/encoders/backbone/", config.encoder.backbone.name+".json",
+    )
 
-    dataset = getattr(datasets, config.dataset)(root=dataset_dir)
+    estimator_model_path = os.path.join(
+        BASEDIR, "jsons", "estimator_model_args.json"
+    )
+
+    head_path = os.path.join(
+        BASEDIR, "jsons/nn/models/head", config.estimator.model_args.name + ".json"
+    )
+
+    update_config_(config, embedding_path, "optuna.parameters.encoder.embedding.args")
+    update_config_(config, backbone_path, "optuna.parameters.encoder.backbone.args")
+    update_config_(config, estimator_model_path, "optuna.parameters.estimator.model_args")
+    update_config_(config, head_path, "optuna.parameters.estimator.model_args")
+
+
+if __name__ == "__main__":
+    config = read_config(BASEDIR / "config.json")
+
+    _update_optuna_config(config)
+
+    dataset = getattr(datasets, config.dataset)(root=DATASET_DIR)
     dataframes = dataset.processed_dataframes(**config.dataframe_args)
 
     datamodule = TabularDatamodule(

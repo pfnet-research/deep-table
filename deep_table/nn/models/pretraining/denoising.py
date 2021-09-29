@@ -96,7 +96,7 @@ class DenoisingPretrainModel(BaseModel):
             cat_reconstructed = None
         else:
             cat_reconstructed = torch.stack(
-                x_reconstructed[self.num_continuous_features:], dim=1
+                x_reconstructed[self.num_continuous_features :], dim=1
             )
         return {
             "con_reconstructed": con_reconstructed,
