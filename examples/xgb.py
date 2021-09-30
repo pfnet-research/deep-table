@@ -6,19 +6,25 @@ import xgboost as xgb
 from deep_table.data import datasets
 from deep_table.utils import get_scores
 
+DATASET_DIR = Path("data")
+
 DATA = "ForestCoverType"
+
 seed = 42
+num_round = 500
+early_stopping_rounds = 20
 
 
 if __name__ == "__main__":
-    dataset_dir = Path("data")
-    dataset = getattr(datasets, DATA)(root=dataset_dir)
+    # Prepare datasets
+    dataset = getattr(datasets, DATA)(root=DATASET_DIR)
     dataframes = dataset.processed_dataframes(random_state=seed)
     df_train = dataframes["train"]
     df_val = dataframes["val"]
     df_test = dataframes["test"]
     target_cols = dataset.target_cols
 
+    # Preprocessing
     X_train = pd.get_dummies(df_train.drop(columns=target_cols)).values
     y_train = df_train[target_cols].values
     X_val = pd.get_dummies(df_val.drop(columns=target_cols)).values
@@ -30,6 +36,7 @@ if __name__ == "__main__":
     dval = xgb.DMatrix(X_val, label=y_val)
     dtest = xgb.DMatrix(X_test)
 
+    # Parameters for xgb.train
     params = {
         "objective": "binary:logistic"
         if dataset.task == "binary"
@@ -39,14 +46,18 @@ if __name__ == "__main__":
     if DATA == "ForestCoverType":
         params["num_class"] = 7
 
-    num_round = 500
-
     watchlist = [(dtrain, "train"), (dval, "eval")]
 
+    # Training
     model = xgb.train(
-        params, dtrain, num_round, early_stopping_rounds=20, evals=watchlist
+        params,
+        dtrain,
+        num_round,
+        early_stopping_rounds=early_stopping_rounds,
+        evals=watchlist,
     )
 
+    # Prediction
     pred = model.predict(dtest)
 
     scores = get_scores(
