@@ -1,4 +1,4 @@
-from typing import Dict, Union
+from typing import Dict, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -20,6 +20,7 @@ def get_scores(
     task: str,
     sigmoid: bool = True,
     softmax: bool = True,
+    prefix: Optional[str] = None,
 ) -> Dict[str, float]:
     """
     Args:
@@ -32,6 +33,8 @@ def get_scores(
             Defaults to True.
         softmax (bool): If True, softmax fuction is applied to `pred`.
             Defaults to True.
+        prefix (str, optional): Prefix for the keys. If `task` is "binary",
+            the returned value is {"`prefix`_AUC", ...}.
 
     Returns:
         dict: {merics, value}
@@ -59,20 +62,25 @@ def get_scores(
         pred = pred.reshape(-1)
         target = target.reshape(-1)
         assert pred.shape == target.shape
-        return get_binary_scores(pred, target, sigmoid)
+        scores = get_binary_scores(pred, target, sigmoid)
 
     elif task == "regression":
         pred = pred.reshape(-1)
         target = target.reshape(-1)
         assert pred.shape == target.shape
-        return get_regression_scores(pred, target)
+        scores = get_regression_scores(pred, target)
 
     elif task == "multiclass":
         assert pred.shape[0] == target.shape[0]
-        return get_multiclass_scores(pred, target, softmax)
+        scores = get_multiclass_scores(pred, target, softmax)
 
     else:
         raise ValueError(f"task: {task} is not implemented")
+
+    if prefix is not None:
+        scores = {prefix + "_" + str(key): val for key, val in scores.items()}
+
+    return scores
 
 
 def get_binary_scores(

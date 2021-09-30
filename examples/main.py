@@ -1,6 +1,7 @@
 import os
+import pprint
 from pathlib import Path
-from typing import Union
+from typing import Sequence, Tuple, Union
 
 import numpy as np
 import optuna
@@ -19,14 +20,26 @@ from deep_table.data.data_module import TabularDatamodule
 from deep_table.estimators.base import Estimator
 from deep_table.utils import get_scores
 
-DATASET_DIR = Path("data")
-BASEDIR = Path(os.path.dirname(__file__))
+pp = pprint.PrettyPrinter(width=41, indent=4)
+dataset_dir = Path("data")
+
+
+def _print_configs(config: DictConfig) -> None:
+    def _pprint_dictconfig(conf: DictConfig):
+        pp.pprint(OmegaConf.to_container(conf))
+
+    _pprint_dictconfig(config.encoder)
+    if config.pretrainer.enable:
+        _pprint_dictconfig(config.pretrainer)
+    _pprint_dictconfig(config.estimator)
 
 
 def objective(
     config: DictConfig,
     datamodule: TabularDatamodule,
-    target: Union[pd.DataFrame, np.ndarray, Tensor],
+    val_target: Union[pd.DataFrame, np.ndarray, Tensor],
+    test_target: Union[pd.DataFrame, np.ndarray, Tensor],
+    target_columns: Sequence[str],
     task: str,
 ):
     def update_suggest_config(trial: optuna.trial.Trial) -> DictConfig:
@@ -35,9 +48,12 @@ def objective(
         merge_config = OmegaConf.unsafe_merge(config, suggest_config)
         return merge_config
 
-    def objective_fn(trial):
+    def objective_fn(trial: optuna.trial.Trial) -> float:
         config = update_suggest_config(trial)
-        print(config)
+
+        _print_configs(config)
+
+        # Pre-training
         if config.pretrainer.enable:
             logger = CSVLogger(save_dir=config.logger.save_dir)
             pretrainer = Estimator(
@@ -48,6 +64,8 @@ def objective(
                 logger=logger,
             )
             pretrainer.fit(datamodule=datamodule)
+
+        # Fine-tuning
         logger = CSVLogger(
             save_dir=config.logger.save_dir,
         )
@@ -62,64 +80,63 @@ def objective(
             datamodule=datamodule,
             from_pretrained=pretrainer if config.pretrainer.enable else None,
         )
+
+        # Prediction for val data
         pred = estimator.predict(datamodule.dataloader("val"))
-        scores = get_scores(
+        val_scores = get_scores(
             pred=pred,
-            target=dataframes["val"][dataset.target_columns].to_numpy(),
+            target=val_target,
             task=task,
+            prefix="val",
         )
-        val_scores = {"val_" + str(key): val for key, val in scores.items()}
         estimator.log(val_scores, step=0)
         objective_loss = val_scores["val_" + config.optuna.objective_loss]
 
-        # TEST SCORE
+        # Prediction for test data
         pred = estimator.predict(datamodule.dataloader("test"))
         test_scores = get_scores(
             pred=pred,
-            target=dataframes["test"][dataset.target_columns].to_numpy(),
+            target=test_target,
             task=task,
+            prefix="test",
         )
-        test_scores = {"test_" + str(key): val for key, val in test_scores.items()}
         estimator.log(test_scores, step=0)
+
         return objective_loss
 
     return objective_fn
 
 
-def _update_optuna_config(config: DictConfig):
-    """Update `config.optuna.parameters` using json files in examples/jsons.
-
-    Modify json files in examples/json to adjust hyper-parameter tuning ranges.
-    """
+def make_config(path_config: str = "config.json") -> DictConfig:
+    basedir = Path(os.path.dirname(__file__))
+    config = read_config(basedir / path_config)
 
     embedding_path = os.path.join(
-        BASEDIR, "jsons/nn/encoders/embedding/", config.encoder.embedding.name+".json",
+        basedir, "jsons/nn/encoders/embedding/", config.encoder.embedding.name+".json",
     )
 
     backbone_path = os.path.join(
-        BASEDIR, "jsons/nn/encoders/backbone/", config.encoder.backbone.name+".json",
+        basedir, "jsons/nn/encoders/backbone/", config.encoder.backbone.name+".json",
     )
 
     estimator_model_path = os.path.join(
-        BASEDIR, "jsons", "estimator_model_args.json"
+        basedir, "jsons", "estimator_model_args.json"
     )
 
     head_path = os.path.join(
-        BASEDIR, "jsons/nn/models/head", config.estimator.model_args.name + ".json"
+        basedir, "jsons/nn/models/head", config.estimator.model_args.name + ".json"
     )
-
     update_config_(config, embedding_path, "optuna.parameters.encoder.embedding.args")
     update_config_(config, backbone_path, "optuna.parameters.encoder.backbone.args")
     update_config_(config, estimator_model_path, "optuna.parameters.estimator.model_args")
     update_config_(config, head_path, "optuna.parameters.estimator.model_args")
+    return config
 
 
-if __name__ == "__main__":
-    config = read_config(BASEDIR / "config.json")
-
-    _update_optuna_config(config)
-
-    dataset = getattr(datasets, config.dataset)(root=DATASET_DIR)
+def prepare_dataset(
+    config: DictConfig
+) -> Tuple[TabularDatamodule, np.ndarray, np.ndarray]:
+    dataset = getattr(datasets, config.dataset)(root=dataset_dir)
     dataframes = dataset.processed_dataframes(**config.dataframe_args)
 
     datamodule = TabularDatamodule(
@@ -134,6 +151,19 @@ if __name__ == "__main__":
         num_categories=dataset.num_categories(),
         **config.datamodule_args,
     )
+
+    val_target = dataframes["val"][dataset.target_columns].to_numpy()
+    test_target = dataframes["test"][dataset.target_columns].to_numpy()
+
+    return datamodule, val_target, test_target
+
+
+def train_with_optuna(
+    config: DictConfig,
+    datamodule: TabularDatamodule,
+    val_target: np.ndarray,
+    test_target=np.ndarray,
+):
     os.makedirs(config.logger.save_dir, exist_ok=True)
     study = optuna.create_study(
         direction=config.optuna.create_study.direction,
@@ -146,10 +176,18 @@ if __name__ == "__main__":
         func=objective(
             config=config,
             datamodule=datamodule,
-            target=dataframes["test"][dataset.target_columns].to_numpy(),
-            task=dataset.task,
+            val_target=val_target,
+            test_target=test_target,
+            target_columns=datamodule.target,
+            task=datamodule.task,
         ),
         n_trials=config.optuna.n_trials,
     )
     best_trial = study.best_trial
     print(best_trial)
+
+
+if __name__ == "__main__":
+    config = make_config()
+    datamodule, val_target, test_target = prepare_dataset(config)
+    train_with_optuna(config, datamodule, val_target, test_target)
