@@ -13,7 +13,7 @@ from torch import Tensor
 from deep_table.configs import read_config
 from deep_table.configs.optuna.utils import (
     make_suggest_config,
-    merge_config_optuna_params,
+    update_config_,
 )
 from deep_table.data import datasets
 from deep_table.data.data_module import TabularDatamodule
@@ -110,23 +110,26 @@ def objective(
 def make_config(path_config: str = "config.json") -> DictConfig:
     basedir = Path(os.path.dirname(__file__))
     config = read_config(basedir / path_config)
-    config = merge_config_optuna_params(
-        config,
-        os.path.join(
-            basedir,
-            "jsons/nn/encoders/embedding/",
-            config.encoder.embedding.name + ".json",
-        ),
-        os.path.join(
-            basedir,
-            "jsons/nn/encoders/backbone/",
-            config.encoder.backbone.name + ".json",
-        ),
-        os.path.join(
-            basedir, "jsons/nn/models/head", config.estimator.model_args.name + ".json"
-        ),
-        os.path.join(basedir, "jsons/estimator_model_args.json"),
+
+    embedding_path = os.path.join(
+        basedir, "jsons/nn/encoders/embedding/", config.encoder.embedding.name+".json",
     )
+
+    backbone_path = os.path.join(
+        basedir, "jsons/nn/encoders/backbone/", config.encoder.backbone.name+".json",
+    )
+
+    estimator_model_path = os.path.join(
+        basedir, "jsons", "estimator_model_args.json"
+    )
+
+    head_path = os.path.join(
+        basedir, "jsons/nn/models/head", config.estimator.model_args.name + ".json"
+    )
+    update_config_(config, embedding_path, "optuna.parameters.encoder.embedding.args")
+    update_config_(config, backbone_path, "optuna.parameters.encoder.backbone.args")
+    update_config_(config, estimator_model_path, "optuna.parameters.estimator.model_args")
+    update_config_(config, head_path, "optuna.parameters.estimator.model_args")
     return config
 
 

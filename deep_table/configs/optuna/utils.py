@@ -7,44 +7,23 @@ from deep_table.configs.optuna import _CONFIG_OPTUNA_ROOT as _ROOT
 JSON_ROOT = _ROOT / "jsons"
 
 
-def merge_config_optuna_params(
-    base_config: DictConfig,
-    embedding_path: str,
-    backbone_path: str,
-    head_path: str,
-    estimator_model_path: str,
-) -> DictConfig:
-    """Utility for creating config.optuna.parameters.
+def update_config_(
+    config_orig: DictConfig, path: str, update_key: str
+) -> None:
+    """Update `DictConfig` using config in `path`.
 
-    Each json file defines the range of hyper-parameters.
+    This function is inplace computation.
+
+    Args:
+        config_orig (`DictConfig`): Original config that will be updated.
+        path (str): Path to file. `path` is given to
+            :func:`~deep_table.configs.io.read_config` and `config_orig`
+            will be updated using this config.
+        update_key (str): Updating config of `config_orig.update_key`.
     """
-
-    config = OmegaConf.create({})
-    OmegaConf.set_struct(config, True)
-
-    embedding_args = read_config(embedding_path)
-    OmegaConf.update(
-        config,
-        "optuna.parameters.encoder.embedding.args",
-        embedding_args,
-        force_add=True,
-    )
-
-    backbone_args = read_config(backbone_path)
-    OmegaConf.update(
-        config, "optuna.parameters.encoder.backbone.args", backbone_args, force_add=True
-    )
-
-    estimator_model_args = read_config(estimator_model_path)
-    estimator_model_args.update(read_config(head_path))
-    OmegaConf.update(
-        config,
-        "optuna.parameters.estimator.model_args",
-        estimator_model_args,
-        force_add=True,
-    )
-    config = OmegaConf.merge(base_config, config)
-    return config
+    config = read_config(path)
+    config_update = OmegaConf.update(config_orig, update_key, config, force_add=True)
+    return config_update
 
 
 def make_suggest_config(trial: optuna.trial.Trial, config: DictConfig) -> DictConfig:
