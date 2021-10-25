@@ -84,12 +84,12 @@ from deep_table.data.data_module import TabularDatamodule
 
 datamodule = TabularDatamodule(
     train=train_df,
-    validation=val_df,
+    val=val_df,
     test=test_df,
     task="binary",
     dim_out=1,
-    categorical_cols=["education", "occupation", ...],
-    continuous_cols=["age", "hours-per-week", ...],
+    categorical_columns=["education", "occupation", ...],
+    continuous_columns=["age", "hours-per-week", ...],
     target=["income"],
     num_categories=110,
 )
