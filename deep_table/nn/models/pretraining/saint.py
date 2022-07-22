@@ -171,7 +171,7 @@ class SAINTPretrainModel(BaseModel):
         self.log(
             f"{tag}_contrastive_loss",
             contrastive_loss,
-            on_epoch=(tag == "valid"),
+            on_epoch=(tag == "val"),
             on_step=(tag == "train"),
             logger=True,
             prog_bar=True,
@@ -179,7 +179,7 @@ class SAINTPretrainModel(BaseModel):
         self.log(
             f"{tag}_denoising_loss",
             denoising_loss,
-            on_epoch=(tag == "valid"),
+            on_epoch=(tag == "val"),
             on_step=(tag == "train"),
             logger=True,
             prog_bar=True,
